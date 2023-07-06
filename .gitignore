@@ -1,7 +1,7 @@
 .DS_Store
 .vscode/
 __pycache__/
-
+/env/
 /feature-extract/node_modules/
 /feature-extract/dist/
 /feature-extract/log/
@@ -10,3 +10,4 @@ __pycache__/
 /features/
 /feature-positions/
 /reports/
+/.decompressed-packages-dataset/

@@ -8,7 +8,7 @@ ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATASETS_PATH =  os.path.join(ROOT_PATH, 'datasets', 'preprocessed-datasets')
 MALICIOUS_DATASETS_PATH = os.path.join(DATASETS_PATH, 'malicious')
 BENIGN_DATASETS_PATH = os.path.join(DATASETS_PATH, 'benign')
-UNKOWN_DATASETS_PATH = os.path.join(DATASETS_PATH, 'unknown')
+UNKOWN_DATASETS_PATH = os.path.join(os.path.dirname(ROOT_PATH), 'collect-npm-packages/packages')
 
 # models path
 MODELS_PATH = os.path.join(ROOT_PATH, 'models')

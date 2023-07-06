@@ -4,6 +4,7 @@ import { getConfig } from '../../config'
 import { join } from 'path'
 import { writeFile, mkdir } from 'fs/promises'
 import { Logger } from '../../Logger'
+import { error } from 'console'
 
 function getAnalyzeResult (fileName: string, featurePosPath: string) {
   return `Finished extracting features of ${fileName}.  recorded at ${featurePosPath}`
