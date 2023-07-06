@@ -14,13 +14,22 @@ import { type PositionRecorder, type Record } from './PositionRecorder'
 
 const MAX_STRING_LENGTH = 66875
 
-export async function scanJSFileByAST (
+/**
+ * Analyze the JavaScript code by AST and extract the feature information.
+ * @param code JavaScript code
+ * @param featureSet feature information
+ * @param isInstallScript whether the JavaScript file name is present in install script
+ * @param targetJSFilePath current analyzed file path
+ * @param positionRecorder feature position recorder
+ * @returns feature information
+ */
+export async function extractFeaturesFromJSFileByAST (
   code: string,
   featureSet: PackageFeatureInfo,
   isInstallScript: boolean,
   targetJSFilePath: string,
   positionRecorder: PositionRecorder
-) {
+): Promise<PackageFeatureInfo> {
   function getRecord (path: any) {
     return {
       filePath: targetJSFilePath,
@@ -35,11 +44,10 @@ export async function scanJSFileByAST (
       sourceType: 'unambiguous'
     })
   } catch (error) {
-    await logger.log('现在分析的文件是: ' + targetJSFilePath)
+    await logger.log('Current analyzed file is ' + targetJSFilePath)
     const errorObj = error as Error
-    await logger.log('error名称: ' + errorObj.name)
-    await logger.log('error信息' + errorObj.message)
-    await logger.log('错误栈' + errorObj.stack)
+    await logger.log(`ERROR MESSAGE: ${errorObj.name}: ${errorObj.message}`)
+    await logger.log('ERROR STACK:' + errorObj.stack)
   }
   try {
     traverse(ast, {
@@ -283,11 +291,10 @@ export async function scanJSFileByAST (
       }
     })
   } catch (error) {
-    await logger.log('现在分析的文件是: ' + targetJSFilePath)
+    await logger.log('Current analyzed file is ' + targetJSFilePath)
     const errorObj = error as Error
-    await logger.log('error名称: ' + errorObj.name)
-    await logger.log('error信息' + errorObj.message)
-    await logger.log('错误栈' + errorObj.stack)
+    await logger.log(`ERROR MESSAGE: ${errorObj.name}: ${errorObj.message}`)
+    await logger.log('ERROR STACK:' + errorObj.stack)
   }
 
   return featureSet

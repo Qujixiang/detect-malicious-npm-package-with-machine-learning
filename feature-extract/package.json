@@ -1,11 +1,12 @@
 {
   "name": "feature-extract",
   "version": "1.0.0",
-  "description": "#### 从单个包提取的特征",
+  "description": "提取npm包的特征",
   "main": "src/index.ts",
   "scripts": {
     "test": "jest",
-    "build": "webpack && node scripts/build.js"
+    "compile": "webpack",
+    "start": "cd dist && node main.js"
   },
   "keywords": [],
   "author": "",

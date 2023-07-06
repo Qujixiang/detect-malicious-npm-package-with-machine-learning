@@ -2,15 +2,10 @@ from sklearn.metrics import accuracy_score, f1_score, matthews_corrcoef, precisi
 
 
 def evaluate_model(y_test, y_pred):
-   # Evaluate the model
+   """模型评估"""
    acc = accuracy_score(y_test, y_pred)
-
    precision = precision_score(y_test, y_pred, pos_label="malicious")
-
    recall = recall_score(y_test, y_pred, pos_label="malicious")
-
    f1 = f1_score(y_test, y_pred, pos_label="malicious")
-
    mcc = matthews_corrcoef(y_test, y_pred)
-   
    return [acc, precision, recall, f1, mcc]

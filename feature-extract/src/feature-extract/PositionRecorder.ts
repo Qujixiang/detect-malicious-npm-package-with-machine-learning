@@ -49,7 +49,7 @@ export class PositionRecorder {
     this.featurePosSet[key].push(record)
   }
 
-  serialRecord () {
+  serializeRecord () {
     return JSON.stringify(this.featurePosSet)
   }
 }

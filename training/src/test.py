@@ -1,14 +1,9 @@
 import os
-
 from prettytable import PrettyTable
 
-from model_util import evaluate_model
-
-from pickle_util import load_classifier
-from commons import table_path, classifier_path, field_names
-
-import numpy as np
-
+from .model_util import evaluate_model
+from .pickle_util import load_classifier
+from .commons import table_path, classifier_path, field_names
 
 
 def test(X_test, y_test):

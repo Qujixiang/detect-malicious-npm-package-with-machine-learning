@@ -1,48 +1,28 @@
-import { predict_py_path } from '../../constants'
 import { extractFeatureFromPackage } from '../../feature-extract'
-import { asyncExec, getErrorInfo, getPackagesFromDir, writeCSVFile } from '../../util'
-import { getConfig, isEnglish } from '../../config'
+import { getErrorInfo, getPackagesFromDir } from '../../util'
+import { getConfig } from '../../config'
 import { join } from 'path'
-import { writeFile } from 'fs/promises'
+import { writeFile, mkdir } from 'fs/promises'
 import { Logger } from '../../Logger'
 
-function getAnalyzeResult (fileName: string, isMalicious: boolean, featurePosPath: string) {
-  if (isEnglish()) {
-    return `Finish analyze ${fileName}. It is ${isMalicious ? 'malicious' : 'benign'}. ${isMalicious ? 'Malicious feature position is recorded at' + featurePosPath : ''}`
-  }
-  return `完成对${fileName}的分析. 它是 ${isMalicious ? '恶意包' : '正常包'}. ${isMalicious ? '恶意特征位置记录在' + featurePosPath : ''}`
+function getAnalyzeResult (fileName: string, featurePosPath: string) {
+  return `Finished extracting features of ${fileName}.  recorded at ${featurePosPath}`
 }
 
 /**
- * 检测单个npm包是否为恶意包
- * @param packagePath npm包路径
- * @param csvDir 保存csv文件路径
+ * Extract the features of a single npm package
+ * @param packagePath the absolute path to npm package
+ * @param featureDirPath the absolute directory path to save feature files
+ * @param featurePosDirPath the absolute directory path to save feature position files
  */
-export async function analyzeSinglePackage (packagePath: string, csvDir: string) {
-  const result = await extractFeatureFromPackage(
-    packagePath,
-    csvDir
-  )
-
-  const packageName = `${result.featureInfo.packageName}@${result.featureInfo.version}`
+async function analyzeSinglePackage (packagePath: string, featureDirPath: string, featurePosDirPath: string) {
+  const result = await extractFeatureFromPackage(packagePath, featureDirPath)
+  const packageName = `${result.featureInfo.packageName}@${result.featureInfo.version}`.replace('/', '#')
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { stderr, stdout } = await asyncExec(
-            `python3 ${predict_py_path} ${result.csvPath} ${getConfig().classifier}`
-    )
-
-    if (stdout) {
-      const featurePosPath = join(packagePath, 'feature-position-info.json')
-
-      if (stdout === 'malicious\n') {
-        Logger.warning(getAnalyzeResult(packageName, true, featurePosPath))
-        await writeFile(featurePosPath, getConfig().positionRecorder!.serialRecord())
-        return result
-      } else {
-        Logger.info(getAnalyzeResult(packageName, false, featurePosPath))
-        return null
-      }
-    }
+    const featurePosPath = join(featurePosDirPath, `${packageName}.json`)
+    Logger.warning(getAnalyzeResult(packageName, featurePosPath))
+    await writeFile(featurePosPath, getConfig().positionRecorder!.serializeRecord())
+    return result
   } catch (error) {
     Logger.error(getErrorInfo(error))
     return null
@@ -50,28 +30,16 @@ export async function analyzeSinglePackage (packagePath: string, csvDir: string)
 }
 
 /**
- * 检测目录中所有的npm包
- * @param dirPath
- * @param csvDir
+ * Extract the features of all npm packages in the directory
+ * @param packageDirPath the absolute directory path to npm package
+ * @param featureDirPath the absolute directory path to save feature files
+ * @param featurePosDirPath the absolute directory path to save feature position files
  */
-export async function analyzeDir (dirPath: string, csvDir: string) {
-  const packagsPath = await getPackagesFromDir(dirPath)
-  let counter = 0
-  let total = 0
-  const maliciousPackages: string[][] = []
-  const malPkgCSVPath = join(dirPath, 'malicious-packages.csv')
-
-  for (const packagePath of packagsPath) {
-    total++
-    const result = await analyzeSinglePackage(packagePath, csvDir)
-    if (result != null) {
-      counter++
-      maliciousPackages.push([result.featureInfo.packageName, result.featureInfo.version])
-    }
-  }
-
-  Logger.info(`总共分析了${total}个包。包含${counter}个恶意包`)
-  if (counter > 0) {
-    await writeCSVFile(malPkgCSVPath, maliciousPackages)
+export async function analyzePackages (packageDirPath: string, featureDirPath: string, featurePosDirPath: string) {
+  try { await mkdir(featureDirPath) } catch (e) {}
+  try { await mkdir(featurePosDirPath) } catch (e) {}
+  const packagesPath = await getPackagesFromDir(packageDirPath)
+  for (const packagePath of packagesPath) {
+    await analyzeSinglePackage(packagePath, featureDirPath, featurePosDirPath)
   }
 }

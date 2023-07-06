@@ -1,33 +1,5 @@
-import { exec } from 'child_process'
 import fs, { readdirSync } from 'fs'
-import { promisify } from 'util'
-import { readFile, writeFile } from 'fs/promises'
-import { parse } from 'csv-parse/sync'
-import { stringify } from 'csv-stringify/sync'
 import path, { basename, join } from 'path'
-
-export function getDirectorySizeInBytes (dir) {
-  let totalSize = 0
-
-  function walk (currentPath) {
-    const files = fs.readdirSync(currentPath)
-
-    for (const file of files) {
-      const filePath = path.join(currentPath, file)
-      const stats = fs.statSync(filePath)
-
-      if (stats.isFile()) {
-        totalSize += stats.size
-      } else if (stats.isDirectory()) {
-        walk(filePath)
-      }
-    }
-  }
-
-  walk(dir)
-
-  return totalSize
-}
 
 export function getRootDirectory () {
   if (isProduction()) {
@@ -43,22 +15,12 @@ export function getRootDirectory () {
   return projectRootPath
 }
 
-export const asyncExec = promisify(exec)
-
-export async function getCSVFromFile (filePath: string): Promise<string[][]> {
-  return parse(await readFile(filePath, { encoding: 'utf-8' }))
-}
-
-export async function writeCSVFile (filePath: string, arr: string[][]) {
-  await writeFile(filePath, stringify(arr))
-}
-
 /**
- *
- * @param dirPath 目录，目录中包含npm包，可以是多级
- * @returns 返回dirPath中所有npm包的路径
+ * Get all packages from a directory.
+ * @param packageDirPath the path to the directory to be searched
+ * @returns all pakcages in the directory
  */
-export async function getPackagesFromDir (dirPath: string) {
+export async function getPackagesFromDir (packageDirPath: string) {
   const result: string[] = []
   async function resolve (dirPath: string) {
     const files = readdirSync(dirPath, { withFileTypes: true })
@@ -72,31 +34,17 @@ export async function getPackagesFromDir (dirPath: string) {
       }
     }
   }
-  await resolve(dirPath)
+  await resolve(packageDirPath)
   return result
 }
 
 /**
- *
- * @param fileName 想要作为文件名的字符串
- * @returns 返回macos上有效的文件名字符串，对fileName中的/全部替换成-
+ * Get the valid file name.
+ * @param fileName the file name to be checked
+ * @returns a valid file name string and replaces all / in fileName with #
  */
 export function getValidFileName (fileName: string) {
-  return fileName.replace(/\//g, '-')
-}
-
-/**
- *
- * @param path 文件路径名称
- * @return 返回path对应的文件名称，不包括扩展名
- */
-export function getFileName (filePath: string) {
-  const fileName = basename(filePath)
-  const dotIndex = fileName.lastIndexOf('.')
-  if (dotIndex < 0) {
-    return fileName
-  }
-  return fileName.substring(0, dotIndex)
+  return fileName.replace('/', '#')
 }
 
 export function getErrorInfo (error: Error) {

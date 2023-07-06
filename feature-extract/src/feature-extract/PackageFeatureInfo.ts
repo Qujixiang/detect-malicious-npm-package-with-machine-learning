@@ -2,13 +2,13 @@ import { opendir, readFile, stat } from 'fs/promises'
 import { getPackageJSONInfo, type PackageJSONInfo } from './PackageJSONInfo'
 import { basename, join } from 'path'
 import { getDomainPattern, IP_Pattern, Network_Command_Pattern, SensitiveStringPattern } from './Patterns'
-import { getAllInstallScripts } from './GetInstallScripts'
-import { scanJSFileByAST } from './AST'
+import { getAllJSFilesInInstallScript } from './GetInstallScripts'
+import { extractFeaturesFromJSFileByAST } from './AST'
 import { matchUseRegExp } from './RegExp'
 import chalk from 'chalk'
-import { should_use_console_log } from '../constants'
 import { PositionRecorder } from './PositionRecorder'
 import { setPositionRecorder } from '../config'
+import { Logger } from '../Logger'
 
 const ALLOWED_MAX_JS_SIZE = 2 * 1024 * 1024
 
@@ -42,11 +42,10 @@ export interface PackageFeatureInfo {
 }
 
 /**
- *
- * @param dirPath 源码包（目录下有package.json文件）的路径
- * @param tgzPath 压缩包的路径
+ * Extract features from the npm package
+ * @param packagePath the directory of the npm package, where there should be a package.json file
  */
-export async function getPackageFeatureInfo (dirPath: string): Promise<PackageFeatureInfo> {
+export async function getPackageFeatureInfo (packagePath: string): Promise<PackageFeatureInfo> {
   const positionRecorder = new PositionRecorder()
   const result: PackageFeatureInfo = {
     hasInstallScripts: false,
@@ -76,13 +75,9 @@ export async function getPackageFeatureInfo (dirPath: string): Promise<PackageFe
     packageName: '',
     version: ''
   }
-  const packageJSONPath = join(dirPath, 'package.json')
+  const packageJSONPath = join(packagePath, 'package.json')
   const packageJSONInfo: PackageJSONInfo = await getPackageJSONInfo(packageJSONPath)
   Object.assign(result, packageJSONInfo)
-
-  // result.editDistance = await minEditDistance(packageJSONInfo.packageName);
-
-  // result.packageSize = getDirectorySizeInBytes(dirPath);
 
   if (packageJSONInfo.hasInstallScripts) {
     positionRecorder.addRecord('hasInstallScripts', {
@@ -91,7 +86,7 @@ export async function getPackageFeatureInfo (dirPath: string): Promise<PackageFe
     })
   }
 
-  // 分析install hook command
+  // analyze commands in the install script 
   for (const scriptContent of packageJSONInfo.installCommand) {
     {
       const matchResult = scriptContent.match(IP_Pattern)
@@ -132,8 +127,8 @@ export async function getPackageFeatureInfo (dirPath: string): Promise<PackageFe
     }
   }
 
-  // 分析install hook js files
-  await getAllInstallScripts(result.executeJSFiles)
+  // analyze JavaScript files in the install script
+  await getAllJSFilesInInstallScript(result.executeJSFiles)
 
   async function traverseDir (dirPath: string) {
     if (basename(dirPath) === 'node_modules') {
@@ -149,9 +144,8 @@ export async function getPackageFeatureInfo (dirPath: string): Promise<PackageFe
             const targetJSFilePath = join(dirPath, dirent.name)
             const jsFileContent = await readFile(targetJSFilePath, { encoding: 'utf-8' })
             const fileInfo = await stat(targetJSFilePath)
-            should_use_console_log && console.log(chalk.blue('现在分析的js文件路径是') + chalk.red(targetJSFilePath) + '  文件大小为' + fileInfo.size)
             if (fileInfo.size <= ALLOWED_MAX_JS_SIZE) {
-              await scanJSFileByAST(jsFileContent, result, isInstallScriptFile, targetJSFilePath, positionRecorder)
+              await extractFeaturesFromJSFileByAST(jsFileContent, result, isInstallScriptFile, targetJSFilePath, positionRecorder)
               matchUseRegExp(jsFileContent, result, positionRecorder, targetJSFilePath)
             }
             resolve(true)
@@ -162,7 +156,7 @@ export async function getPackageFeatureInfo (dirPath: string): Promise<PackageFe
       }
     }
   }
-  await traverseDir(dirPath)
+  await traverseDir(packagePath)
   setPositionRecorder(positionRecorder)
   return result
 }

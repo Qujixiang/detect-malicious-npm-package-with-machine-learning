@@ -1,10 +1,10 @@
-
 import { type FileHandle, open, mkdir } from 'fs/promises'
 import { dirname, join } from 'path'
 import { getRootDirectory } from './util'
 
 export class FileLogger {
   fileHandler: FileHandle
+  
   async init (logFilePath: string) {
     try {
       await mkdir(dirname(logFilePath), { recursive: true })

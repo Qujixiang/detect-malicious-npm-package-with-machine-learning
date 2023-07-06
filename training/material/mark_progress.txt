@@ -1,2 +1,0 @@
-discord-lofy
-express-cookies

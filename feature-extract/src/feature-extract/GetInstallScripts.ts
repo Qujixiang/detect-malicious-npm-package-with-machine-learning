@@ -7,17 +7,17 @@ import { isStringLiteral } from '@babel/types'
 import { getFileLogger } from '../FileLogger'
 
 /**
- *
- * @param installScripts install hook中js file的路径
- * @return 所有在install hook中执行的js file路径
+ * Get all JavaScript files that are executed or imported directly and indirectly in the install hook
+ * @param jsFilesInInstallScript the path to js files in install script
+ * @returns the parameter jsFilesInInstallScript
  */
-export async function getAllInstallScripts (installScripts: string[]) {
-  async function resolveAllInstallScripts (installScripts: string[], idx: number) {
-    if (idx >= installScripts.length) {
+export async function getAllJSFilesInInstallScript (jsFilesInInstallScript: string[]) {
+  async function resolveAllJSFilesInInstallScript (jsFilesInInstallScript: string[], idx: number) {
+    if (idx >= jsFilesInInstallScript.length) {
       return
     }
     const logger = await getFileLogger()
-    const codeContent = readFileSync(installScripts[idx], {
+    const codeContent = readFileSync(jsFilesInInstallScript[idx], {
       encoding: 'utf-8'
     })
     let ast: any
@@ -26,11 +26,10 @@ export async function getAllInstallScripts (installScripts: string[]) {
         sourceType: 'unambiguous'
       })
     } catch (error) {
-      await logger.log('现在分析的文件是: ' + installScripts[idx])
+      await logger.log('Current analyzed file is ' + jsFilesInInstallScript[idx])
       const errorObj = error as Error
-      await logger.log('error名称: ' + errorObj.name)
-      await logger.log('error信息' + errorObj.message)
-      await logger.log('错误栈' + errorObj.stack)
+      await logger.log(`ERROR MESSAGE: ${errorObj.name}: ${errorObj.message}`)
+      await logger.log('ERROR STACK:' + errorObj.stack)
     }
     try {
       traverse(ast, {
@@ -42,14 +41,14 @@ export async function getAllInstallScripts (installScripts: string[]) {
                 const moduleName = path.node.arguments[0].value
                 try {
                   if (moduleName.startsWith('/') || moduleName.startsWith('./') || moduleName.startsWith('../')) {
-                    let importScript = join(dirname(installScripts[idx]), moduleName)
+                    let importScript = join(dirname(jsFilesInInstallScript[idx]), moduleName)
                     if (importScript.endsWith('.js') || !importScript.includes('.')) {
                       if (!importScript.endsWith('.js')) {
                         importScript = importScript + '.js'
                       }
                       try {
                         accessSync(importScript)
-                        installScripts.push(importScript)
+                        jsFilesInInstallScript.push(importScript)
                       } catch (error) {
                         console.log(error)
                       }
@@ -64,18 +63,13 @@ export async function getAllInstallScripts (installScripts: string[]) {
         }
       })
     } catch (error) {
-      await logger.log('现在分析的文件是: ' + installScripts[idx])
+      await logger.log('Current analyzed file is ' + jsFilesInInstallScript[idx])
       const errorObj = error as Error
-      await logger.log('error名称: ' + errorObj.name)
-      await logger.log('error信息' + errorObj.message)
-      await logger.log('错误栈' + errorObj.stack)
+      await logger.log(`ERROR MESSAGE: ${errorObj.name}: ${errorObj.message}`)
+      await logger.log('ERROR STACK:' + errorObj.stack)
     }
-    await resolveAllInstallScripts(installScripts, idx + 1)
+    await resolveAllJSFilesInInstallScript(jsFilesInInstallScript, idx + 1)
   }
 
-  await resolveAllInstallScripts(installScripts, 0)
+  await resolveAllJSFilesInInstallScript(jsFilesInInstallScript, 0)
 }
-
-// let filePaths = ["/Users/huchaoqun/Desktop/code/school-course/毕设/source-code/feature-extract/src/example.js"];
-// getAllInstallScripts(filePaths);
-// console.log(filePaths);

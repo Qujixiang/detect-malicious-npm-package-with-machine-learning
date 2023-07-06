@@ -1,19 +1,20 @@
+import os
+
 from sklearn.model_selection import StratifiedKFold, cross_validate
 from sklearn.naive_bayes import GaussianNB
-from commons import field_names, table_path, scoring, classifier_save_path
 from prettytable import PrettyTable
-import os
-import pickle
 
-from model_util import evaluate_model
-from pickle_util import save_classifier
+from .commons import field_names, table_path, scoring, classifier_save_path
+from .model_util import evaluate_model
+from .pickle_util import save_classifier
+
 
 best_smoothing = 1e-4
 
 def train_NB_Validate(X, y):
    table = PrettyTable()
    table.field_names = field_names
-   csv_path = os.path.join(table_path, "NB_Validation.csv")
+   csv_path = os.path.join(table_path, "NB_validation.csv")
    k = 4
    skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=10)
    smoothings =  [1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4]

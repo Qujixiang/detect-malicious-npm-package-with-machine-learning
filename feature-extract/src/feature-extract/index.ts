@@ -1,26 +1,19 @@
 import { stringify } from 'csv-stringify/sync'
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile } from 'fs/promises'
 import { join } from 'path'
-import { getPackagesFromDir, getValidFileName } from '../util'
+import { getValidFileName } from '../util'
 import { getPackageFeatureInfo, type PackageFeatureInfo } from './PackageFeatureInfo'
 
 /**
- *
- * @param sourcePath npm包的目录，目录下应该有package.json文件
- * @param csvDir 特征文件的保存目录
- * @returns 返回特征文件的路径
+ * Extract features from the npm package and save the features to the feature file
+ * @param packagePath the directory of the npm package, where there should be a package.json file
+ * @param featureDirPath directory of saving feature files
+ * @returns the path of the feature file and feature information
  */
-export async function extractFeatureFromPackage (sourcePath: string, csvDir: string) {
-  const result: PackageFeatureInfo = await getPackageFeatureInfo(sourcePath)
+export async function extractFeatureFromPackage (packagePath: string, featureDirPath: string) {
+  const result: PackageFeatureInfo = await getPackageFeatureInfo(packagePath)
   const fileName = getValidFileName(result.packageName)
-
-  try {
-    await mkdir(csvDir, { recursive: true })
-  } catch (e) {
-
-  }
-
-  const csvPath = join(csvDir, fileName + '.csv')
+  const csvPath = join(featureDirPath, fileName + '.csv')
   const featureArr: Array<[string, number | boolean]> = []
   featureArr.push(['hasInstallScript', result.hasInstallScripts])
   featureArr.push(['containIP', result.containIP])
@@ -62,21 +55,5 @@ export async function extractFeatureFromPackage (sourcePath: string, csvDir: str
   return {
     csvPath,
     featureInfo: result
-  }
-}
-
-/**
- *
- * @param dirPath 包含npm包的目录，对该目录下的所有npm包进行特征提取
- * @param csvDir 特征提取文件的目录
- */
-export async function extractFeatureFromDir (dirPath: string, csvDir: string) {
-  const packagesPath = await getPackagesFromDir(dirPath)
-  for (const packagePath of packagesPath) {
-    await new Promise(resolve => {
-      setTimeout(async () => {
-        await extractFeatureFromPackage(packagePath, csvDir)
-      }, 0)
-    })
   }
 }

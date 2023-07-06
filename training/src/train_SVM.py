@@ -1,12 +1,13 @@
+import os
+
 from prettytable import PrettyTable
 from sklearn.model_selection import StratifiedKFold, cross_validate
 from sklearn.svm import SVC
-import os
-from commons import table_path, scoring, field_names, classifier_save_path
-from model_util import evaluate_model
-import pickle
 
-from pickle_util import save_classifier
+from .commons import table_path, scoring, field_names, classifier_save_path
+from .model_util import evaluate_model
+from .pickle_util import save_classifier
+
 
 best_C = 1.611045328589775
 best_gamma = "scale"
@@ -17,7 +18,7 @@ def train_SVM_validate(X, y):
    k = 4
    skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=10)
    table = PrettyTable()
-   csv_path = os.path.join(table_path, "SVM_Validation.csv")
+   csv_path = os.path.join(table_path, "SVM_validation.csv")
    table.field_names = field_names
    with open(csv_path, "w+") as f: 
       for C_val in C_arr:

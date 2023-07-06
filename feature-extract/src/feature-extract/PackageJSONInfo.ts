@@ -1,7 +1,8 @@
 import chalk from 'chalk'
 import { access, stat, readFile } from 'fs/promises'
 import { dirname, join } from 'path'
-import { should_use_console_log } from '../constants'
+import { isUTF8WithBOM, readFileFromUTF8WithBOM } from '../util/FileUtil'
+import { Logger } from '../Logger'
 
 export async function getPackageSize (tgzPath: string) {
   const fileInfo = await stat(tgzPath)
@@ -19,11 +20,11 @@ export interface PackageJSONInfo {
 }
 
 /**
- *
- * @param filePath package.json文件路径
- * @return PackageJSONINFO
+ * Extract package information from package.json
+ * @param packageJsonPath the path to package.json
+ * @returns package information
  */
-export async function getPackageJSONInfo (filePath: string): Promise<PackageJSONInfo> {
+export async function getPackageJSONInfo (packageJsonPath: string): Promise<PackageJSONInfo> {
   const result: PackageJSONInfo = {
     dependencyNumber: 0,
     devDependencyNumber: 0,
@@ -33,7 +34,12 @@ export async function getPackageJSONInfo (filePath: string): Promise<PackageJSON
     packageName: '',
     version: ''
   }
-  const fileContent = await readFile(filePath, { encoding: 'utf-8' })
+  let fileContent: string = ''
+  if (await isUTF8WithBOM(packageJsonPath)) {
+    fileContent = await readFileFromUTF8WithBOM(packageJsonPath)
+  } else {
+    fileContent = await readFile(packageJsonPath, { encoding: 'utf-8' })
+  }
   const metaData = JSON.parse(fileContent)
   result.dependencyNumber = Object.keys(metaData?.dependencies || {}).length
   result.devDependencyNumber = Object.keys(metaData?.devDependencies || {}).length
@@ -44,7 +50,7 @@ export async function getPackageJSONInfo (filePath: string): Promise<PackageJSON
   const preinstall = metaData?.scripts?.preinstall
   const install = metaData?.scripts?.install
   const postinstall = metaData?.scripts?.postinstall
-  const parentDir = dirname(filePath)
+  const parentDir = dirname(packageJsonPath)
   if (preinstall) {
     result.installCommand.push(preinstall)
     let jsFile = extractJSFilePath(preinstall)
@@ -54,7 +60,7 @@ export async function getPackageJSONInfo (filePath: string): Promise<PackageJSON
         await access(jsFile)
         executeJSFiles.push(jsFile)
       } catch (error) {
-        should_use_console_log && console.log(chalk.red(filePath + '中的node执行的脚本不存在'))
+        Logger.warning(chalk.red(`The file in ${packageJsonPath} doesn't exist.`))
       }
     }
   }
@@ -67,7 +73,7 @@ export async function getPackageJSONInfo (filePath: string): Promise<PackageJSON
         await access(jsFile)
         executeJSFiles.push(jsFile)
       } catch (error) {
-        should_use_console_log && console.log(chalk.red(filePath + '中的node执行的脚本不存在'))
+        Logger.warning(chalk.red(`The file in ${packageJsonPath} doesn't exist.`))
       }
     }
   }
@@ -80,7 +86,7 @@ export async function getPackageJSONInfo (filePath: string): Promise<PackageJSON
         await access(jsFile)
         executeJSFiles.push(jsFile)
       } catch (error) {
-        should_use_console_log && console.log(chalk.red(filePath + '中的node执行的脚本不存在'))
+        Logger.warning(chalk.red(`The file in ${packageJsonPath} doesn't exist.`))
       }
     }
   }
@@ -88,6 +94,11 @@ export async function getPackageJSONInfo (filePath: string): Promise<PackageJSON
   return result
 }
 
+/**
+ * Extract the path to the JS file in the script content
+ * @param scriptContent preinsta/install/postinstall script in package.json
+ * @returns the path to the JS file in the script content
+ */
 export function extractJSFilePath (scriptContent: string): string | undefined {
   const jsFileReg = /node\s+?(.+?\.js)/
   const matchResult = scriptContent.match(jsFileReg)
