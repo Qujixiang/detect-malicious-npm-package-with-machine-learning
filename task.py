@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import tarfile
 import traceback
@@ -20,7 +21,7 @@ def add_mode(dir: str):
                 os.chmod(dir_path, 0o777)
         for filename in filenames:
             file_path = os.path.join(dirpath, filename)
-            if not os.access(file_path, os.R_OK):
+            if not os.access(file_path, os.R_OK | os.W_OK):
                 os.chmod(file_path, 0o666)
                 
 def extract_cli(dataset_name: str):
@@ -30,12 +31,22 @@ def extract_cli(dataset_name: str):
     feature_postion_path = os.path.join(FEATURE_POSITIONS_PATH, dataset_name)
 
     if os.path.exists(feature_path):
-        shutil.rmtree(feature_path)
+        try:
+            shutil.rmtree(feature_path)
+        except PermissionError:
+            traceback.print_exc()
+            add_mode(temp_dataset_path)
+            shutil.rmtree(temp_dataset_path)
     os.makedirs(feature_path)
 
     temp_dataset_path = os.path.abspath(f'.decompressed-packages-dataset')
     if os.path.exists(temp_dataset_path):
-        shutil.rmtree(temp_dataset_path)
+        try:
+            shutil.rmtree(temp_dataset_path)
+        except PermissionError:
+            traceback.print_exc()
+            add_mode(temp_dataset_path)
+            shutil.rmtree(temp_dataset_path)
     os.makedirs(temp_dataset_path)
     for file_name in os.listdir(dataset_path):
         file_path = os.path.join(dataset_path, file_name)
@@ -48,7 +59,7 @@ def extract_cli(dataset_name: str):
                 tar.extractall(path=temp_package_path)
                 tar.close()
         except Exception:
-            print(f'Error: {file_name}')
+            print(f'Error: {file_name}', file=sys.stderr)
             traceback.print_exc()
     add_mode(temp_dataset_path)
     try:
